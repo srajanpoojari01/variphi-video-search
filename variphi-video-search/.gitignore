@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# FAISS index (generated at runtime)
+index/
+thumbnails/
+
+# Results (generated at runtime)
+results.json
+benchmark_report.json
+eval_report.json
+eval_results.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Model cache
+~/.cache/clip/
+
+# Test videos
+*.mp4
+*.avi
+*.mov
+*.mkv
+/tmp/

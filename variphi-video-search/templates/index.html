@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Variphi · Video Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #08090c;
+      --surface: #10131a;
+      --border: #1e2330;
+      --accent: #00e5ff;
+      --accent2: #7c3aed;
+      --text: #e8eaf0;
+      --muted: #5a6070;
+      --success: #00c896;
+      --warn: #f59e0b;
+      --radius: 6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo {
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+    }
+    .logo span { color: var(--text); }
+    .pill {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      background: rgba(0,229,255,.1);
+      color: var(--accent);
+      border: 1px solid rgba(0,229,255,.25);
+      border-radius: 999px;
+      padding: 3px 10px;
+      letter-spacing: .5px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      margin-right: 6px;
+      transition: background .3s;
+    }
+    .status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+
+    /* ── Hero ── */
+    .hero { padding: 56px 0 36px; }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent); }
+    .hero p { color: var(--muted); margin-top: 12px; font-size: 1.05rem; max-width: 520px; }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      margin-top: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 6px 6px 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      transition: border-color .2s;
+    }
+    .search-wrap:focus-within { border-color: var(--accent); }
+    .search-wrap input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+    }
+    .search-wrap input::placeholder { color: var(--muted); }
+    .btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 22px;
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: opacity .15s, transform .1s;
+      white-space: nowrap;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:active { transform: scale(.97); }
+    .btn.secondary {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn.danger {
+      background: #7f1d1d;
+      color: #fca5a5;
+    }
+
+    /* ── Filters row ── */
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-group { display: flex; align-items: center; gap: 6px; }
+    .filter-label {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .filter-group input[type="number"],
+    .filter-group input[type="text"],
+    .filter-group select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: .75rem;
+      padding: 5px 8px;
+      width: 90px;
+      outline: none;
+    }
+    .filter-group select { width: auto; cursor: pointer; }
+    .filter-group input:focus, .filter-group select:focus { border-color: var(--accent); }
+    .filter-toggle {
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+      font-family: 'Space Mono', monospace; font-size: .75rem; color: var(--muted);
+      user-select: none;
+    }
+    .filter-toggle input { accent-color: var(--accent); cursor: pointer; }
+
+    /* ── Tabs (Index | Search) ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-top: 40px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 10px 22px;
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      letter-spacing: .5px;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .tab-panel { display: none; padding-top: 28px; }
+    .tab-panel.active { display: block; }
+
+    /* ── Index panel ── */
+    .index-form {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .index-form input {
+      flex: 1;
+      min-width: 260px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: .85rem;
+      padding: 10px 14px;
+      outline: none;
+    }
+    .index-form input:focus { border-color: var(--accent); }
+    .status-box {
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      font-family: 'Space Mono', monospace;
+      font-size: .78rem;
+      color: var(--muted);
+      min-height: 56px;
+      line-height: 1.6;
+    }
+    .stat-row {
+      display: flex; gap: 24px; flex-wrap: wrap; margin-top: 20px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 22px;
+      min-width: 130px;
+    }
+    .stat-card .val {
+      font-size: 1.8rem; font-weight: 800; color: var(--accent); letter-spacing: -1px;
+    }
+    .stat-card .lbl {
+      font-family: 'Space Mono', monospace; font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 2px;
+    }
+
+    /* ── Results ── */
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .results-header h2 {
+      font-size: 1.1rem; font-weight: 700; letter-spacing: -.5px;
+    }
+    .meta-chip {
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color .2s, transform .15s;
+      animation: fadeUp .3s ease both;
+    }
+    .result-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-thumb {
+      width: 100%; aspect-ratio: 16/9;
+      background: #0a0c10;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    .result-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .result-thumb .no-img {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem;
+      color: var(--muted);
+    }
+    .rank-badge {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,.75);
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .result-body { padding: 12px 14px; }
+    .result-ts {
+      font-family: 'Space Mono', monospace;
+      font-size: .85rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .result-vid {
+      font-family: 'Space Mono', monospace;
+      font-size: .65rem;
+      color: var(--muted);
+      margin-top: 4px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .score-bar-wrap { margin-top: 10px; }
+    .score-bar-label {
+      display: flex; justify-content: space-between;
+      font-family: 'Space Mono', monospace; font-size: .65rem; color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .score-bar {
+      height: 3px; background: var(--border); border-radius: 2px; overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 2px;
+      transition: width .5s ease;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: .85rem;
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: .78rem;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .3s, transform .3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+      padding: 20px 0;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <div class="logo">Variphi<span> · VideoSearch</span></div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span id="healthStatus" class="pill"><span class="status-dot" id="statusDot"></span>connecting…</span>
+      <span class="pill">CLIP ViT-B/32 · FAISS</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Search video archives<br>with <em>natural language</em></h1>
+    <p>Scene-aware semantic retrieval across your footage — powered by CLIP embeddings and FAISS ANN search.</p>
+
+    <div class="search-wrap">
+      <input id="queryInput" type="text" placeholder='Try: "person near entrance carrying a bag after 6pm"' />
+      <button class="btn" onclick="doSearch()">SEARCH</button>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Top-K</span>
+        <input type="number" id="topK" value="10" min="1" max="50" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Start (s)</span>
+        <input type="number" id="startTime" placeholder="e.g. 3600" />
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">End (s)</span>
+        <input type="number" id="endTime" placeholder="e.g. 7200" />
+      </div>
+      <label class="filter-toggle">
+        <input type="checkbox" id="rerank" checked />
+        Re-rank
+      </label>
+    </div>
+  </section>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('search')">🔍 Search Results</div>
+    <div class="tab" onclick="switchTab('index')">📂 Index Videos</div>
+    <div class="tab" onclick="switchTab('stats')">📊 Stats</div>
+  </div>
+
+  <!-- Search Results Tab -->
+  <div class="tab-panel active" id="tab-search">
+    <div id="searchResults">
+      <div class="empty-state">
+        <div class="icon">🎬</div>
+        Enter a query above and hit SEARCH
+      </div>
+    </div>
+  </div>
+
+  <!-- Index Tab -->
+  <div class="tab-panel" id="tab-index">
+    <p style="color:var(--muted);font-size:.9rem;margin-bottom:16px;">Provide an absolute path to a video file or a directory of video clips.</p>
+    <div class="index-form">
+      <input id="indexPath" type="text" placeholder="/absolute/path/to/videos or /path/to/video.mp4" />
+      <button class="btn" onclick="startIndexing()">START INDEXING</button>
+    </div>
+    <div class="status-box" id="indexStatus">Idle — enter a path and click Start Indexing.</div>
+  </div>
+
+  <!-- Stats Tab -->
+  <div class="tab-panel" id="tab-stats">
+    <button class="btn secondary" onclick="loadStats()">REFRESH STATS</button>
+    <div class="stat-row" id="statsRow" style="margin-top:20px;">
+      <div class="empty-state" style="width:100%;">Click Refresh to load stats.</div>
+    </div>
+    <div id="videoList" style="margin-top:20px;"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    Variphi Video Search Engine · CLIP + FAISS · Built for semantic retrieval at scale
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+  // ── Utilities ──────────────────────────────────────────
+  function toast(msg, dur = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((el, i) => {
+      const names = ['search','index','stats'];
+      el.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach(el => {
+      el.classList.toggle('active', el.id === 'tab-' + name);
+    });
+  }
+
+  // ── Health check ───────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const r = await fetch('/health');
+      const d = await r.json();
+      const dot = document.getElementById('statusDot');
+      const chip = document.getElementById('healthStatus');
+      dot.className = 'status-dot online';
+      chip.innerHTML = `<span class="status-dot online"></span>${d.indexed_frames} frames indexed`;
+    } catch {
+      document.getElementById('healthStatus').innerHTML = `<span class="status-dot"></span>offline`;
+    }
+  }
+  checkHealth();
+  setInterval(checkHealth, 10000);
+
+  // ── Search ─────────────────────────────────────────────
+  document.getElementById('queryInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  async function doSearch() {
+    const query = document.getElementById('queryInput').value.trim();
+    if (!query) { toast('Please enter a search query'); return; }
+
+    const top_k = parseInt(document.getElementById('topK').value) || 10;
+    const start_time = document.getElementById('startTime').value ? parseFloat(document.getElementById('startTime').value) : null;
+    const end_time = document.getElementById('endTime').value ? parseFloat(document.getElementById('endTime').value) : null;
+    const rerank = document.getElementById('rerank').checked;
+
+    const container = document.getElementById('searchResults');
+    container.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-family:'Space Mono',monospace;font-size:.85rem;"><span class="spinner"></span>Searching…</div>`;
+    switchTab('search');
+
+    try {
+      const body = { query, top_k, rerank };
+      if (start_time !== null) body.start_time = start_time;
+      if (end_time !== null) body.end_time = end_time;
+
+      const r = await fetch('/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) { toast(data.detail || 'Search error'); container.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div>${data.detail}</div>`; return; }
+      renderResults(data);
+    } catch (err) {
+      toast('Network error: ' + err.message);
+      container.innerHTML = `<div class="empty-state"><div class="icon">❌</div>Network error</div>`;
+    }
+  }
+
+  function renderResults(data) {
+    const container = document.getElementById('searchResults');
+    const { results, meta } = data;
+
+    if (!results || results.length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div>No results found for "${data.query}"</div>`;
+      return;
+    }
+
+    const headerHtml = `
+      <div class="results-header">
+        <h2>${results.length} results for "<em>${data.query}</em>"</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="meta-chip">${meta.query_latency_ms}ms</span>
+          ${meta.reranked ? '<span class="meta-chip">re-ranked</span>' : ''}
+          ${meta.temporal_filter && (meta.temporal_filter.start_sec || meta.temporal_filter.end_sec) ? '<span class="meta-chip">⏱ filtered</span>' : ''}
+          ${meta.sub_queries && meta.sub_queries.length > 1 ? `<span class="meta-chip">${meta.sub_queries.length} sub-queries</span>` : ''}
+        </div>
+      </div>`;
+
+    const cards = results.map((r, i) => {
+      const pct = Math.round(r.score * 100);
+      const vidName = r.video_path.split('/').pop() || r.video_path;
+      return `
+        <div class="result-card" style="animation-delay:${i * 40}ms">
+          <div class="result-thumb">
+            <img src="${r.frame_url}" alt="Frame at ${r.timestamp}" loading="lazy"
+                 onerror="this.parentElement.innerHTML='<span class=\\'no-img\\'>No preview</span>'" />
+            <div class="rank-badge">#${r.rank}</div>
+          </div>
+          <div class="result-body">
+            <div class="result-ts">⏱ ${r.timestamp}</div>
+            <div class="result-vid" title="${r.video_path}">📹 ${vidName}</div>
+            <div class="score-bar-wrap">
+              <div class="score-bar-label"><span>Relevance</span><span>${pct}%</span></div>
+              <div class="score-bar"><div class="score-bar-fill" style="width:${Math.max(pct,2)}%"></div></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = headerHtml + `<div class="results-grid">${cards}</div>`;
+  }
+
+  // ── Indexing ────────────────────────────────────────────
+  let statusInterval = null;
+
+  async function startIndexing() {
+    const path = document.getElementById('indexPath').value.trim();
+    if (!path) { toast('Please enter a path'); return; }
+
+    const r = await fetch('/index', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path }),
+    });
+    const d = await r.json();
+    if (!r.ok) { toast(d.detail || 'Error'); return; }
+    toast('Indexing started!');
+    pollStatus();
+  }
+
+  function pollStatus() {
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = setInterval(async () => {
+      const r = await fetch('/index/status');
+      const d = await r.json();
+      const box = document.getElementById('indexStatus');
+      if (d.running) {
+        box.innerHTML = `<span class="spinner"></span>${d.progress}`;
+      } else {
+        box.innerHTML = d.progress || 'Idle';
+        if (d.stats && d.stats.length > 0) {
+          const total = d.stats.reduce((a, s) => a + (s.frames_indexed || 0), 0);
+          const thr = d.stats.map(s => s.throughput_fps || 0);
+          const avgThr = (thr.reduce((a, b) => a + b, 0) / thr.length).toFixed(1);
+          box.innerHTML += `<br><br>✅ Indexed ${total} frames across ${d.stats.length} video(s) · avg ${avgThr} frames/sec`;
+        }
+        clearInterval(statusInterval);
+        checkHealth();
+      }
+    }, 1500);
+  }
+
+  // ── Stats ───────────────────────────────────────────────
+  async function loadStats() {
+    const r = await fetch('/stats');
+    const d = await r.json();
+    const row = document.getElementById('statsRow');
+    row.innerHTML = `
+      <div class="stat-card"><div class="val">${d.total_frames || 0}</div><div class="lbl">Frames Indexed</div></div>
+      <div class="stat-card"><div class="val">${d.total_videos || 0}</div><div class="lbl">Videos</div></div>
+    `;
+    if (d.videos && d.videos.length) {
+      document.getElementById('videoList').innerHTML = `
+        <p style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--muted);margin-bottom:10px;">INDEXED VIDEOS</p>
+        ${d.videos.map(v => `<div style="font-family:'Space Mono',monospace;font-size:.75rem;color:var(--text);padding:6px 0;border-bottom:1px solid var(--border);">📹 ${v}</div>`).join('')}
+      `;
+    }
+  }
+</script>
+</body>
+</html>
